@@ -1,7 +1,7 @@
 import discord
 import os
 from dotenv import load_dotenv
-from discord.ext import tasks, commands
+from discord.ext import commands
 load_dotenv('.env')
 
 intents = discord.Intents.default()
