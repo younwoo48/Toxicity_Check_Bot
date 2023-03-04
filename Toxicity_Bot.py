@@ -13,7 +13,7 @@ TOKEN = os.getenv('TOKEN')
 
 # intents = discord.Intents.default()
 # intents.message_content = True
-
+permissions = discord.Permissions(send_messages=True, read_messages=True)
 bot = commands.Bot(command_prefix = '!', intents=intents)
 # client = discord.Client(intents=intents)
 
@@ -25,16 +25,6 @@ async def on_ready():
 async def ping(ctx):
   await ctx.send(f'Pong! {round(bot.latency * 1000)}ms')
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    elif message.content.startswith('_'):
-
-        cmd = message.content.split()[0].replace("_","")
-        if len(message.content.split()) > 1:
-            parameters = message.content.split()[1:]
-
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -43,5 +33,9 @@ async def on_message(message):
     if message.content.startswith('$hello'):
         print("hello was said")
         await message.channel.send('Hello!')
+    await bot.process_commands(message)
+
+async def set_perms(ctx):
+    await ctx.guild.me.edit(permissions=permissions)
 
 bot.run(TOKEN)
