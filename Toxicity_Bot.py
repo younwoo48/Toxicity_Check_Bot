@@ -2,6 +2,9 @@ import discord
 import os
 from dotenv import load_dotenv
 from discord.ext import commands
+import nltk
+nltk.download('punkt')
+from nltk.tokenize import word_tokenize 
 load_dotenv('.env')
 
 intents = discord.Intents.default()
@@ -12,6 +15,15 @@ TOKEN = os.getenv('TOKEN')
 
 permissions = discord.Permissions(send_messages=True, read_messages=True)
 bot = commands.Bot(command_prefix = '!', intents=intents)
+
+def tonkenize(msg):
+    token_list = dict()
+    for user in msg.keys():
+        token_list[user] = []
+        for text in msg[user]:
+            token_list[user].append(word_tokenize(text))
+    return token_list
+    
 
 @bot.event
 async def on_ready():
@@ -35,6 +47,7 @@ async def get_messages(ctx, limit=10):
 @bot.command()
 async def do_they_like_me(ctx):
     messages = await get_messages(ctx)
-    print(messages)
+    print(tonkenize(messages))
+
 
 bot.run(TOKEN)
