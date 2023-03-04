@@ -1,11 +1,13 @@
 import discord
 import os
 from dotenv import load_dotenv
-from discord.ext import tasks, commands
+from discord.ext import commands
 load_dotenv('.env')
 
+
 intents = discord.Intents.default()
-intents.messages = True
+intents.message_content = True
+client = discord.Client(intents=intents)
 
 TOKEN = os.getenv('TOKEN')
 
@@ -22,6 +24,16 @@ async def on_ready():
 @bot.command()
 async def ping(ctx):
   await ctx.send(f'Pong! {round(bot.latency * 1000)}ms')
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+    elif message.content.startswith('_'):
+
+        cmd = message.content.split()[0].replace("_","")
+        if len(message.content.split()) > 1:
+            parameters = message.content.split()[1:]
 
 @bot.event
 async def on_message(message):
