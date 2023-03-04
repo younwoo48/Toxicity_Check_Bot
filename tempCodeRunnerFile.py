@@ -1,0 +1,1 @@
+client = discord.Client(intents=intents)
