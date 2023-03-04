@@ -1,9 +1,9 @@
+import asyncio
 import discord
 import os
 from dotenv import load_dotenv
 from discord.ext import commands
 load_dotenv('.env')
-
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -11,11 +11,8 @@ client = discord.Client(intents=intents)
 
 TOKEN = os.getenv('TOKEN')
 
-# intents = discord.Intents.default()
-# intents.message_content = True
 permissions = discord.Permissions(send_messages=True, read_messages=True)
 bot = commands.Bot(command_prefix = '!', intents=intents)
-# client = discord.Client(intents=intents)
 
 @bot.event
 async def on_ready():
@@ -25,17 +22,19 @@ async def on_ready():
 async def ping(ctx):
   await ctx.send(f'Pong! {round(bot.latency * 1000)}ms')
 
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
+async def get_messages(ctx, limit=10):
+    """Get the last `limit` messages in the channel."""
+    messages = dict()
+    async for m in ctx.channel.history(limit=limit):
+        if m.author.name not in messages.keys():
+            messages[m.author.name] = [m.content]
+        user_messages = messages[m.author.name]
+        user_messages.append(m.content)
+    return messages
 
-    if message.content.startswith('$hello'):
-        print("hello was said")
-        await message.channel.send('Hello!')
-    await bot.process_commands(message)
-
-async def set_perms(ctx):
-    await ctx.guild.me.edit(permissions=permissions)
+@bot.command()
+async def do_they_like_me(ctx):
+    messages = await get_messages(ctx)
+    print(messages)
 
 bot.run(TOKEN)
