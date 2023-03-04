@@ -27,8 +27,9 @@ async def get_messages(ctx, limit=10):
     async for m in ctx.channel.history(limit=limit):
         if m.author.name not in messages.keys():
             messages[m.author.name] = [m.content]
-        user_messages = messages[m.author.name]
-        user_messages.append(m.content)
+        else:
+            user_messages = messages[m.author.name]
+            user_messages.append(m.content)
     return messages
 
 @bot.command()
