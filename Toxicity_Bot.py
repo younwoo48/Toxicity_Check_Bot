@@ -29,7 +29,7 @@ async def get_messages(ctx, limit=10):
             messages[m.author.name] = [m.content]
         else:
             user_messages = messages[m.author.name]
-            user_messages.append(m.content)
+            user_messages.append((m.content, m.created_at))
     return messages
 
 @bot.command()
