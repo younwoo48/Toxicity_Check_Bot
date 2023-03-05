@@ -29,7 +29,7 @@ TOKEN = os.getenv('TOKEN')
 
 permissions = discord.Permissions(send_messages=True, read_messages=True)
 bot = commands.Bot(command_prefix = ';;', intents=intents)
-
+warnings = dict()
 
 async def detect_emotion(ctx, msgs ,user):
     anger = 0
@@ -38,7 +38,7 @@ async def detect_emotion(ctx, msgs ,user):
     sad = 0
     surprise = 0
     n = 0
-    for (text,time) in msgs[user]:
+    for text in msgs:
         emotion = te.get_emotion(text)
         n+=1
         anger += emotion['Angry']
@@ -49,12 +49,24 @@ async def detect_emotion(ctx, msgs ,user):
     await ctx.send(f'{user}\'s recent emotions:\n')    
     await ctx.send(f'Anger: {anger/n}\nFear: {fear/n}\nHappy: {happy/n}\nSad: {sad/n}\nSurprise: {surprise/n}')    
 
+def filter_tokens(token_list,user):
+    passed_tokens = []
+    for token in token_list[user]:
+        if(len(token)>=2 and not "_" in token):
+            (word, pos) = nltk.pos_tag(token)
+            if(not pos is "DT" and not pos is "PRP"):
+                passed_tokens.append(token)
+    return passed_tokens
+            
+            
+
 def tokenize(msg):
     token_list = dict()
     for user in msg.keys():
         token_list[user] = []
         for (text,time) in msg[user]:
             token_list[user].append(word_tokenize(text))
+        token_list[user] = filter_tokens(token_list[user],user)
     return token_list
     
 
@@ -228,13 +240,34 @@ async def what_are_my_emotions(ctx):
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
-    messages = await get_messages(ctx,limit=100)
+    messages = await get_messages_from_user(ctx,user,limit=100)
     await detect_emotion(ctx,messages,user)
 
-    for user, messages in messages.items():
-        for message in messages:
-            print(user)
-            print(message)
-            print(judge_toxicity(message))
+    # for user, messages in messages.items():
+    #     for message in messages:
+    #         print(user)
+    #         print(message)
+    #         print(judge_toxicity(message))
+@bot.event
+async def on_message(message):
+    tox = judge_toxicity([message.content])
+    toxic_reasons = []
+    for measure in tox.keys():
+        if(tox[measure]>0.45):
+            toxic_reasons.append(measure)
+    if(len(toxic_reasons)>0):
+        if message.author.id in warnings.keys():
+            warnings[message.author.id]+=1
+        else:
+            warnings[message.author.id] = 1
+        ending = "th"
+        if(str(warnings[message.author.id])[-1] is "1"):
+            ending = "st"
+        elif(str(warnings[message.author.id])[-1] is "2"):
+            ending = "nd"
+        elif(str(warnings[message.author.id])[-1] is "3"):
+            ending = "rd"
+        await message.channel.send(f"<@{message.author.id}> Message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
+
 
 bot.run(TOKEN)
