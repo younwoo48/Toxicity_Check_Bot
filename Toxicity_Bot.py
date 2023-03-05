@@ -112,6 +112,8 @@ def judge_toxicity(message):
     except:
         toxicity_scores = dict()
         toxicity_scores['TOXICITY'] = 0
+
+    toxicity_scores['CONTENT'] = message
     
     return toxicity_scores
 
@@ -162,21 +164,42 @@ def calculate_user_profile(msg_profiles):
     num_dicts = len(msg_profiles)
 
     # Iterate over each key in the dictionaries
-    for key in msg_profiles[0].keys():
-        # Initialize a variable to hold the sum of the values for this key
-        key_sum = 0.0
+    for key in msg_profiles[0]:
+        if key != 'CONTENT':
+            # Initialize variables to hold the sum and maximum values for this key
+            key_sum = 0.0
+            max_msg = ''
+            max_score = float('-inf')
 
-        # Iterate over each dictionary in the list and add up the values for this key
-        for d in msg_profiles:
-            key_sum += d.get(key, 0)
+            # Iterate over each dictionary in the list and add up the values for this key
+            for msg_profile in msg_profiles:
+                key_value = msg_profile.get(key, 0)
+                key_sum += key_value
+                if key_value > max_score: 
+                    max_msg = msg_profile.get('CONTENT', '') 
+                    max_score = key_value
 
-        # Calculate the average for this key
-        key_avg = key_sum / num_dicts
+            # Calculate the average for this key
+            key_avg = key_sum / num_dicts
 
-        # Add the average value to the new dictionary
-        user_profile[key] = key_avg
+            # Add the average and maximum values to the new dictionary
+            user_profile[key] = key_avg
+            user_profile[key+'_max'] = max_msg
     return user_profile
 
+def format_msg(user_profile):
+    print(user_profile)
+    msg = f'''Here is the likelihood that you are:
+    Severely toxic: {user_profile.get('SEVERE_TOXICITY', '')},
+    Toxic: {user_profile.get('TOXICITY', '')},
+    Insulting: {user_profile.get('INSULT', '')}
+    Attacking someone's identity: {user_profile.get('IDENTITY_ATTACK', '')},
+    Threatening: {user_profile.get('THREAT', '')}
+    Your most toxic comment was: {user_profile.get('SEVERE_TOXICITY_max', '')}.
+    Your most insulting comment was: {user_profile.get('INSULT_max', '')}.
+    Your most offensive comment was: {user_profile.get('IDENTITY_ATTACK_max', '')}.
+    '''
+    return msg
 
 @bot.command()
 async def toxicity_check(ctx):
@@ -185,12 +208,9 @@ async def toxicity_check(ctx):
         user = id_user
     msgs = await get_messages_from_user(ctx, user, check_no=100)
     msg_profs = [judge_toxicity(m) for m in msgs]
-    print('calculating user prof...')
     user_profile = calculate_user_profile(msg_profs)
-    print(user_profile)
-    #     tox += judge_toxicity(msg)['T
-    # tox = (tox/len(msgs))*100
-    # await ctx.send(f'{user}\'s recent toxicness: {tox}%')    
+    msg_to_send = format_msg(user_profile)
+    await ctx.send(msg_to_send)
 
 @bot.command()
 async def what_are_my_emotions(ctx):
