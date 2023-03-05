@@ -5,14 +5,23 @@ import requests
 import json
 from discord.ext import commands
 import nltk
-nltk.download('punkt')
 from nltk.tokenize import word_tokenize 
-load_dotenv('.env')
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import itertools
+import tracemalloc
 import text2emotion as te
+
+
+load_dotenv('.env')
+tracemalloc.start()
+
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+load_dotenv('.env')
+nltk.download('punkt')
 TOKEN = os.getenv('TOKEN')
 
 permissions = discord.Permissions(send_messages=True, read_messages=True)
@@ -54,7 +63,7 @@ async def on_ready():
 async def ping(ctx):
   await ctx.send(f'Pong! {round(bot.latency * 1000)}ms')
 
-async def get_messages(ctx, limit=10):
+async def get_messages(ctx, limit=1000):
     """Get the last `limit` messages in the channel."""
     messages = dict()
     async for m in ctx.channel.history(limit=limit):
@@ -98,7 +107,42 @@ def judge_toxicity(message):
 @bot.command()
 async def do_they_like_me(ctx):
     messages = await get_messages(ctx)
-    print(tokenize(messages))
+    return messages
+
+# ----------------- Wordcloud -----------------
+@bot.command()
+async def greet(ctx, arg):
+    messages = await do_they_like_me(ctx)
+    await ctx.send(f'Hello')
+    await generate_wordcloud(messages=messages, arg = arg)
+    await print_wordcloud()
+
+def generate_wordcloud(messages, arg):
+    tokenized_msgs = tokenize(messages)
+    words = tokenized_msgs[arg]
+    joined_list = list(itertools.chain(*words))
+
+    wordcloud = WordCloud(width=800, height=800, background_color='white', min_font_size=10).generate(' '.join(joined_list))
+
+    # plot the WordCloud image
+    plt.figure(figsize=(8,8), facecolor=None)
+    plt.imshow(wordcloud)
+    plt.axis("off")
+    plt.tight_layout(pad=0)
+    plt.show()
+
+    # save the WordCloud image as a file
+    wordcloud.to_file("wordcloud.png")
+
+async def print_wordcloud(): 
+    # find the channel you want to send a message to channel_name = 'general'
+    channel = discord.utils.get(bot.get_all_channels(), name='general')
+    # send a message to the channel
+    with open('wordcloud.png', 'rb') as f:
+        file = discord.File(f)
+    # send the file to the channel
+    await channel.send(file=file)
+
 
 @bot.command()
 async def toxicity_check(ctx):
@@ -126,6 +170,10 @@ async def what_are_my_emotions(ctx):
         user = id_user
     messages = await get_messages(ctx,limit=100)
     await detect_emotion(ctx,messages,user)
+<<<<<<< Updated upstream
+=======
+    
+>>>>>>> Stashed changes
     for user, messages in messages.items():
         for message in messages:
             print(user)
