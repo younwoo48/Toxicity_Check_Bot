@@ -95,12 +95,17 @@ def judge_toxicity(message):
             'text': '\n'.join(message)
         },
         'requestedAttributes': {
-            'TOXICITY': {}
+            'TOXICITY': {},
+            'SEVERE_TOXICITY': {},
+            'IDENTITY_ATTACK': {},
+            'INSULT': {},
+            'THREAT': {}
         },
         'languages': ['en']
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
+    toxicity_scores = {}
     try:
         attribute_scores = response.json()['attributeScores']
         toxicity_scores = {attr: score['summaryScore']['value'] for attr, score in attribute_scores.items()}
@@ -149,29 +154,42 @@ async def print_wordcloud():
     # send the file to the channel
     await channel.send(file=file)
 
+def calculate_user_profile(msg_profiles):
+    # Initialize an empty dictionary to hold the averaged values
+    user_profile = {}
+
+    # Get the number of dictionaries in the list
+    num_dicts = len(msg_profiles)
+
+    # Iterate over each key in the dictionaries
+    for key in msg_profiles[0].keys():
+        # Initialize a variable to hold the sum of the values for this key
+        key_sum = 0.0
+
+        # Iterate over each dictionary in the list and add up the values for this key
+        for d in msg_profiles:
+            key_sum += d[key]
+
+        # Calculate the average for this key
+        key_avg = key_sum / num_dicts
+
+        # Add the average value to the new dictionary
+        user_profile[key] = key_avg
+    return user_profile
+
 
 @bot.command()
 async def toxicity_check(ctx):
-    max_tox = 0
-    most_toxic_msg = ""
-    tox = 0
-    msg_tox=0
+    user_profile = {}
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
     msgs = await get_messages_from_user(ctx, user, check_no=100)
     n = 0 
     for msg in msgs:
-        if(not ";;" in msg):
-            msg_tox = judge_toxicity(msg)['TOXICITY']
-            if(msg_tox!=0):
-                n+=1
-                tox+=msg_tox
-                if( msg_tox>max_tox):
-                    max_tox = msg_tox
-                    most_toxic_msg = msg
-    tox = (tox/n)*100
-    await ctx.send(f'{user}\'s recent toxicness: {tox}%\nMost Toxic Message: "{most_toxic_msg}" with {max_tox*100}%')    
+        tox += judge_toxicity(msg)['TOXICITY']
+    tox = (tox/len(msgs))*100
+    await ctx.send(f'{user}\'s recent toxicness: {tox}%')    
 
 @bot.command()
 async def what_are_my_emotions(ctx):
@@ -180,12 +198,11 @@ async def what_are_my_emotions(ctx):
         user = id_user
     messages = await get_messages(ctx,limit=100)
     await detect_emotion(ctx,messages,user)
+
     for user, messages in messages.items():
         for message in messages:
             print(user)
             print(message)
             print(judge_toxicity(message))
-
-
 
 bot.run(TOKEN)
