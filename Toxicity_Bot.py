@@ -154,12 +154,7 @@ async def wordcloud(ctx, arg):
 def generate_wordcloud(messages, arg):
     tokenized_msgs = tokenize(messages,arg)
     words = tokenized_msgs
-    print(words)
-    wordcloud = WordCloud(width=800, height=800, background_color='white', min_font_size=10).generate(" ".join(words))
-    print("in generate_wordcloud")
-    tokenized_msgs = tokenize(messages)
-    words = tokenized_msgs[arg]
-    joined_list = list(itertools.chain(*words))
+    joined_list = tokenized_msgs
     word_dict_list = {word: joined_list.count(word) for word in set(joined_list)}
     
     sentiment_scores = {}
