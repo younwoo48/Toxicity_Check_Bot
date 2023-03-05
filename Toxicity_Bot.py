@@ -6,16 +6,15 @@ import json
 from discord.ext import commands
 import nltk
 from nltk.tokenize import word_tokenize 
-load_dotenv('.env')
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import itertools
 import tracemalloc
-
-
-tracemalloc.start()
-
 import text2emotion as te
+
+
+load_dotenv('.env')
+tracemalloc.start()
 
 intents = discord.Intents.default()
 intents.message_content = True
