@@ -168,7 +168,7 @@ def calculate_user_profile(msg_profiles):
 
         # Iterate over each dictionary in the list and add up the values for this key
         for d in msg_profiles:
-            key_sum += d[key]
+            key_sum += d.get(key, 0)
 
         # Calculate the average for this key
         key_avg = key_sum / num_dicts
@@ -180,16 +180,17 @@ def calculate_user_profile(msg_profiles):
 
 @bot.command()
 async def toxicity_check(ctx):
-    user_profile = {}
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
     msgs = await get_messages_from_user(ctx, user, check_no=100)
-    n = 0 
-    for msg in msgs:
-        tox += judge_toxicity(msg)['TOXICITY']
-    tox = (tox/len(msgs))*100
-    await ctx.send(f'{user}\'s recent toxicness: {tox}%')    
+    msg_profs = [judge_toxicity(m) for m in msgs]
+    print('calculating user prof...')
+    user_profile = calculate_user_profile(msg_profs)
+    print(user_profile)
+    #     tox += judge_toxicity(msg)['T
+    # tox = (tox/len(msgs))*100
+    # await ctx.send(f'{user}\'s recent toxicness: {tox}%')    
 
 @bot.command()
 async def what_are_my_emotions(ctx):
