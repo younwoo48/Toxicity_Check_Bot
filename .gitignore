@@ -1,8 +1,2 @@
-<<<<<<< HEAD
-*.env
-venv
-.idea
-=======
 venv/
 .env
->>>>>>> 575ee884ef3e13f5669598b6af0babaa4a1f28d1
