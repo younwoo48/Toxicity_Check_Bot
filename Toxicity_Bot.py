@@ -100,8 +100,12 @@ def judge_toxicity(message):
         'languages': ['en']
     }
     response = requests.post(url, headers=headers, data=json.dumps(data))
-    attribute_scores = response.json()['attributeScores']
-    toxicity_scores = {attr: score['summaryScore']['value'] for attr, score in attribute_scores.items()}
+    try:
+        attribute_scores = response.json()['attributeScores']
+        toxicity_scores = {attr: score['summaryScore']['value'] for attr, score in attribute_scores.items()}
+    except:
+        pass
+    
     return toxicity_scores
 
 @bot.command()
