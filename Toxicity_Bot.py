@@ -16,11 +16,11 @@ TOKEN = os.getenv('TOKEN')
 permissions = discord.Permissions(send_messages=True, read_messages=True)
 bot = commands.Bot(command_prefix = '!', intents=intents)
 
-def tonkenize(msg):
+def tokenize(msg):
     token_list = dict()
     for user in msg.keys():
         token_list[user] = []
-        for text in msg[user]:
+        for (text,time) in msg[user]:
             token_list[user].append(word_tokenize(text))
     return token_list
     
@@ -38,7 +38,7 @@ async def get_messages(ctx, limit=10):
     messages = dict()
     async for m in ctx.channel.history(limit=limit):
         if m.author.name not in messages.keys():
-            messages[m.author.name] = [m.content]
+            messages[m.author.name] = [(m.content, m.created_at)]
         else:
             user_messages = messages[m.author.name]
             user_messages.append((m.content, m.created_at))
@@ -47,7 +47,7 @@ async def get_messages(ctx, limit=10):
 @bot.command()
 async def do_they_like_me(ctx):
     messages = await get_messages(ctx)
-    print(tonkenize(messages))
+    print(tokenize(messages))
 
 
 bot.run(TOKEN)
