@@ -46,12 +46,24 @@ async def detect_emotion(ctx, msgs ,user):
     await ctx.send(f'{user}\'s recent emotions:\n')    
     await ctx.send(f'Anger: {anger/n}\nFear: {fear/n}\nHappy: {happy/n}\nSad: {sad/n}\nSurprise: {surprise/n}')    
 
+def filter_tokens(token_list,user):
+    passed_tokens = []
+    for token in token_list[user]:
+        if(len(token)>=2 and not "_" in token):
+            (word, pos) = nltk.pos_tag(token)
+            if(not pos is "DT" and not pos is "PRP"):
+                passed_tokens.append(token)
+    return passed_tokens
+            
+            
+
 def tokenize(msg):
     token_list = dict()
     for user in msg.keys():
         token_list[user] = []
         for (text,time) in msg[user]:
             token_list[user].append(word_tokenize(text))
+        token_list[user] = filter_tokens(token_list[user],user)
     return token_list
     
 
