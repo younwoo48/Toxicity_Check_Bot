@@ -1,6 +1,8 @@
 import discord
 import os
 from dotenv import load_dotenv
+import requests
+import json
 from discord.ext import commands
 import nltk
 nltk.download('punkt')
@@ -63,6 +65,24 @@ async def get_messages(ctx, limit=10):
             user_messages.append((m.content, m.created_at))
     return messages
 
+def judge_toxicity(message):
+    API_KEY = 'AIzaSyDJfvvVgP4BQyhmFwlojakTTj7oJ5SJkJs'
+    url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=" + API_KEY
+    headers = {'content-type': 'application/json'}
+    data = {
+        'comment': {
+            'text': '\n'.join(message)
+        },
+        'requestedAttributes': {
+            'TOXICITY': {}
+        },
+        'languages': ['en']
+    }
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    attribute_scores = response.json()['attributeScores']
+    toxicity_scores = {attr: score['summaryScore']['value'] for attr, score in attribute_scores.items()}
+    return toxicity_scores
+
 @bot.command()
 async def do_they_like_me(ctx):
     messages = await get_messages(ctx)
@@ -78,5 +98,11 @@ async def what_are_my_emotions(ctx):
     
         
 
+
+    for user, messages in messages.items():
+        for message in messages:
+            print(user)
+            print(message)
+            print(judge_toxicity(message))
 
 bot.run(TOKEN)
