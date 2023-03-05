@@ -3,3 +3,4 @@ venv/
 mbti.csv
 MBTI.py
 mbti_tokenized.csv
+wordcloud.png

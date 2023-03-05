@@ -16,6 +16,12 @@ import text2emotion as te
 from textblob import TextBlob
 from collections import Counter
 import random
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix,classification_report
+
 
 
 load_dotenv('.env')
@@ -32,6 +38,16 @@ TOKEN = os.getenv('TOKEN')
 permissions = discord.Permissions(send_messages=True, read_messages=True)
 bot = commands.Bot(command_prefix = ';;', intents=intents)
 warnings = dict()
+
+df = pd.read_csv('mbti_mini.csv')
+df = df.dropna()
+train = df[:150000]
+vectorizer = CountVectorizer(token_pattern=r'\b\w+\b')
+train_matrix = vectorizer.fit_transform(train['body'])
+lr = LogisticRegression()
+X_train = train_matrix
+y_train = train['mbti']
+lr.fit(X_train,y_train)
 
 async def detect_emotion(ctx, msgs ,user):
     anger = 0
@@ -77,6 +93,8 @@ def tokenize(msg,target_user):
         token_list[user] = filter_tokens(token_list,user)
     return token_list[target_user]
     
+
+
 
 @bot.event
 async def on_ready():
@@ -263,7 +281,7 @@ def format_msg(user_profile):
 @bot.command()
 async def toxicity_check(ctx):
     print("in toxicity_check")
-    recent_msg = await get_messages(ctx,limit=1)
+    recent_msg = await get_messages(ctx,limit = 1)
     for id_user in recent_msg.keys():
         user = id_user
     msgs = await get_messages_from_user(ctx, user, check_no=100)
@@ -273,13 +291,17 @@ async def toxicity_check(ctx):
     await ctx.send(msg_to_send)
 
 @bot.command()
-async def what_are_my_emotions(ctx):
-    print("in what_is_my_emotions")
+async def guess_mbti(ctx):
+    print("in what_is_my_mbti")
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
-    messages = await get_messages_from_user(ctx,user,limit=100)
-    await detect_emotion(ctx,messages,user)
+    messages = await get_messages_from_user(ctx,user,check_no=10)
+    messages = " ".join(messages)
+    test_matrix = vectorizer.transform([messages])
+    prediction = lr.predict(test_matrix)
+    print(prediction)
+    await ctx.send(f"From your chat style, your MBTI is predicted to be {prediction[0]}")
 
     # for user, messages in messages.items():
     #     for message in messages:
