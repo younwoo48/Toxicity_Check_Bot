@@ -5,6 +5,8 @@ import requests
 import json
 from discord.ext import commands
 import nltk
+nltk.download('averaged_perceptron_tagger')
+from nltk import pos_tag
 from nltk.tokenize import word_tokenize 
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
@@ -49,22 +51,26 @@ async def detect_emotion(ctx, msgs ,user):
 def filter_tokens(token_list,user):
     passed_tokens = []
     for token in token_list[user]:
-        if(len(token)>=2 and not "_" in token):
-            (word, pos) = nltk.pos_tag(token)
-            if(not pos is "DT" and not pos is "PRP"):
-                passed_tokens.append(token)
+        for word in token:
+            if(word == "I" or ((len(word)>=2) and (not "_" in word))):
+                pos = nltk.pos_tag([word])
+                
+                if(pos[0][1] != "DT" and pos[0][1] != "PRP"):
+                    if(word.isalnum()):
+                        passed_tokens.append(word)
+    
     return passed_tokens
             
             
 
-def tokenize(msg):
+def tokenize(msg,target_user):
     token_list = dict()
     for user in msg.keys():
         token_list[user] = []
         for (text,time) in msg[user]:
             token_list[user].append(word_tokenize(text))
-        token_list[user] = filter_tokens(token_list[user],user)
-    return token_list
+        token_list[user] = filter_tokens(token_list,user)
+    return token_list[target_user]
     
 
 @bot.event
@@ -141,11 +147,10 @@ async def wordcloud(ctx, arg):
     await print_wordcloud()
 
 def generate_wordcloud(messages, arg):
-    tokenized_msgs = tokenize(messages)
-    words = tokenized_msgs[arg]
-    joined_list = list(itertools.chain(*words))
-
-    wordcloud = WordCloud(width=800, height=800, background_color='white', min_font_size=10).generate(' '.join(joined_list))
+    tokenized_msgs = tokenize(messages,arg)
+    words = tokenized_msgs
+    print(words)
+    wordcloud = WordCloud(width=800, height=800, background_color='white', min_font_size=10).generate(" ".join(words))
 
     # plot the WordCloud image
     plt.figure(figsize=(8,8), facecolor=None)
@@ -230,11 +235,11 @@ async def on_message(message):
         else:
             warnings[message.author.id] = 1
         ending = "th"
-        if(str(warnings[message.author.id])[-1] is "1"):
+        if(str(warnings[message.author.id])[-1] == "1"):
             ending = "st"
-        elif(str(warnings[message.author.id])[-1] is "2"):
+        elif(str(warnings[message.author.id])[-1] == "2"):
             ending = "nd"
-        elif(str(warnings[message.author.id])[-1] is "3"):
+        elif(str(warnings[message.author.id])[-1] == "3"):
             ending = "rd"
         await message.channel.send(f"<@{message.author.id}> Message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
 
