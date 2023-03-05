@@ -6,11 +6,14 @@ import json
 from discord.ext import commands
 import nltk
 from nltk.tokenize import word_tokenize 
-from wordcloud import WordCloud
+from wordcloud import WordCloud, STOPWORDS
 import matplotlib.pyplot as plt
 import itertools
 import tracemalloc
 import text2emotion as te
+from textblob import TextBlob
+from collections import Counter
+import random
 
 
 load_dotenv('.env')
@@ -26,7 +29,7 @@ TOKEN = os.getenv('TOKEN')
 
 permissions = discord.Permissions(send_messages=True, read_messages=True)
 bot = commands.Bot(command_prefix = ';;', intents=intents)
-
+warnings = dict()
 
 async def detect_emotion(ctx, msgs ,user):
     anger = 0
@@ -35,7 +38,7 @@ async def detect_emotion(ctx, msgs ,user):
     sad = 0
     surprise = 0
     n = 0
-    for (text,time) in msgs[user]:
+    for text in msgs:
         emotion = te.get_emotion(text)
         n+=1
         anger += emotion['Angry']
@@ -46,12 +49,24 @@ async def detect_emotion(ctx, msgs ,user):
     await ctx.send(f'{user}\'s recent emotions:\n')    
     await ctx.send(f'Anger: {anger/n}\nFear: {fear/n}\nHappy: {happy/n}\nSad: {sad/n}\nSurprise: {surprise/n}')    
 
+def filter_tokens(token_list,user):
+    passed_tokens = []
+    for token in token_list[user]:
+        if(len(token)>=2 and not "_" in token):
+            (word, pos) = nltk.pos_tag(token)
+            if(not pos is "DT" and not pos is "PRP"):
+                passed_tokens.append(token)
+    return passed_tokens
+            
+            
+
 def tokenize(msg):
     token_list = dict()
     for user in msg.keys():
         token_list[user] = []
         for (text,time) in msg[user]:
             token_list[user].append(word_tokenize(text))
+        token_list[user] = filter_tokens(token_list[user],user)
     return token_list
     
 
@@ -134,18 +149,44 @@ def generate_wordcloud(messages, arg):
     tokenized_msgs = tokenize(messages)
     words = tokenized_msgs[arg]
     joined_list = list(itertools.chain(*words))
+    word_dict_list = {word: joined_list.count(word) for word in set(joined_list)}
+    
+    sentiment_scores = {}
+    for word in joined_list:
+        blob = TextBlob(word)
+        sentiment_scores[word] = blob.sentiment.polarity
 
-    wordcloud = WordCloud(width=800, height=800, background_color='white', min_font_size=10).generate(' '.join(joined_list))
+    full_dict  = {}
+    # Print the sentiment scores for each word
+    for word, score in sentiment_scores.items():
+        color = 'red' if score < 0.2 else 'green'
+        full_dict[word] = (word_dict_list[word], score, color)
+        print(score)
 
-    # plot the WordCloud image
-    plt.figure(figsize=(8,8), facecolor=None)
-    plt.imshow(wordcloud)
+    def get_word_color(word, **kwargs):
+        # Generate a random RGB color tuple
+        r,g,b = 0,0,0
+        if word in full_dict.keys():
+            r = abs(full_dict[word][1] * 255)
+            g = abs((1 - full_dict[word][1]) * 255)
+            b = abs((1 - full_dict[word][1]) * 255)
+    
+        return f"rgb({int(r)}, {int(g)}, {int(b)})"
+    
+    # create the word cloud
+    wc = WordCloud(background_color='white', max_words=200, color_func=get_word_color, height=800, width=800)
+
+    # generate the word cloud
+    wc.generate_from_frequencies(word_dict_list)
+
+    # display the word cloud
+    plt.imshow(wc, interpolation='bilinear')
     plt.axis("off")
-    plt.tight_layout(pad=0)
     plt.show()
 
+    
     # save the WordCloud image as a file
-    wordcloud.to_file("wordcloud.png")
+    wc.to_file("wordcloud.png")
 
 async def print_wordcloud(): 
     # find the channel you want to send a message to channel_name = 'general'
@@ -155,6 +196,8 @@ async def print_wordcloud():
         file = discord.File(f)
     # send the file to the channel
     await channel.send(file=file)
+    
+# ------------------------------------
 
 def calculate_user_profile(msg_profiles):
     # Initialize an empty dictionary to hold the averaged values
@@ -217,13 +260,34 @@ async def what_are_my_emotions(ctx):
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
-    messages = await get_messages(ctx,limit=100)
+    messages = await get_messages_from_user(ctx,user,limit=100)
     await detect_emotion(ctx,messages,user)
 
-    for user, messages in messages.items():
-        for message in messages:
-            print(user)
-            print(message)
-            print(judge_toxicity(message))
+    # for user, messages in messages.items():
+    #     for message in messages:
+    #         print(user)
+    #         print(message)
+    #         print(judge_toxicity(message))
+@bot.event
+async def on_message(message):
+    tox = judge_toxicity([message.content])
+    toxic_reasons = []
+    for measure in tox.keys():
+        if(tox[measure]>0.45):
+            toxic_reasons.append(measure)
+    if(len(toxic_reasons)>0):
+        if message.author.id in warnings.keys():
+            warnings[message.author.id]+=1
+        else:
+            warnings[message.author.id] = 1
+        ending = "th"
+        if(str(warnings[message.author.id])[-1] is "1"):
+            ending = "st"
+        elif(str(warnings[message.author.id])[-1] is "2"):
+            ending = "nd"
+        elif(str(warnings[message.author.id])[-1] is "3"):
+            ending = "rd"
+        await message.channel.send(f"<@{message.author.id}> Message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
+
 
 bot.run(TOKEN)
