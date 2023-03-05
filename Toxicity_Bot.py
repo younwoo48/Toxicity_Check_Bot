@@ -52,6 +52,8 @@ async def detect_emotion(ctx, msgs ,user):
     await ctx.send(f'Anger: {anger/n}\nFear: {fear/n}\nHappy: {happy/n}\nSad: {sad/n}\nSurprise: {surprise/n}')    
 
 def filter_tokens(token_list,user):
+    prepositions = ["wordcloud","on", "in", "at", "of", "to", "with", "by", "for", "from", "about", "as", "among", "between", "within", "without", "through", "toward", "during", "under", "until", "that", "be", "is"]
+
     passed_tokens = []
     for token in token_list[user]:
         for word in token:
@@ -59,8 +61,9 @@ def filter_tokens(token_list,user):
                 pos = nltk.pos_tag([word])
                 
                 if(pos[0][1] != "DT" and pos[0][1] != "PRP"):
-                    if(word.isalnum()):
-                        passed_tokens.append(word)
+                    if(word.isalpha()):
+                        if(word.lower() not in prepositions):
+                            passed_tokens.append(word)
     
     return passed_tokens
                    
@@ -147,8 +150,9 @@ async def do_they_like_me(ctx):
 async def wordcloud(ctx, arg):
     print("In wordcloud")
     messages = await do_they_like_me(ctx)
-    await ctx.send(f'I did it!')
-    await generate_wordcloud(messages=messages, arg = arg)
+    await ctx.send(f'Mkaing wordcloud for {arg}')
+    generate_wordcloud(messages=messages, arg = arg)
+    await ctx.send(f'{arg} uses these words most: ')
     await print_wordcloud()
 
 def generate_wordcloud(messages, arg):
@@ -193,14 +197,15 @@ def generate_wordcloud(messages, arg):
     # display the word cloud
     plt.imshow(wc, interpolation='bilinear')
     plt.axis("off")
-    plt.show()
+    # plt.show()
 
     # save the WordCloud image as a file
     wc.to_file("wordcloud.png")
 
+
 async def print_wordcloud(): 
     # find the channel you want to send a message to channel_name = 'general'
-    channel = discord.utils.get(bot.get_all_channels(), name='general')
+    channel = discord.utils.get(bot.get_all_channels(), name='committee-chat')
     # send a message to the channel
     with open('wordcloud.png', 'rb') as f:
         file = discord.File(f)
