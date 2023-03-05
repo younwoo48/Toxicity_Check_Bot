@@ -12,11 +12,11 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import itertools
 import tracemalloc
+import text2emotion as te
 
 
 tracemalloc.start()
 
-import text2emotion as te
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
@@ -110,9 +110,9 @@ async def do_they_like_me(ctx):
 
 # ----------------- Wordcloud -----------------
 @bot.command()
-async def greet(ctx, arg):
+async def wordcloud(ctx, arg):
     messages = await do_they_like_me(ctx)
-    await ctx.send(f'Hello')
+    await ctx.send(f'I did it!')
     await generate_wordcloud(messages=messages, arg = arg)
     await print_wordcloud()
 
