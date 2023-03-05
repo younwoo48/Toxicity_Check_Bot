@@ -174,7 +174,6 @@ async def what_are_my_emotions(ctx):
         user = id_user
     messages = await get_messages(ctx,limit=100)
     await detect_emotion(ctx,messages,user)
-    
     for user, messages in messages.items():
         for message in messages:
             print(user)
