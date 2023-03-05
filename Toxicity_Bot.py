@@ -153,7 +153,6 @@ async def wordcloud(ctx, arg):
 
 def generate_wordcloud(messages, arg):
     tokenized_msgs = tokenize(messages,arg)
-    words = tokenized_msgs
     joined_list = tokenized_msgs
     word_dict_list = {word: joined_list.count(word) for word in set(joined_list)}
     
@@ -167,20 +166,26 @@ def generate_wordcloud(messages, arg):
     for word, score in sentiment_scores.items():
         color = 'red' if score < 0.2 else 'green'
         full_dict[word] = (word_dict_list[word], score, color)
-        print(score)
 
     def get_word_color(word, **kwargs):
         # Generate a random RGB color tuple
-        r,g,b = 0,0,0
+        r,g,b = 155,155,155
         if word in full_dict.keys():
-            r = abs(full_dict[word][1] * 255)
-            g = abs((1 - full_dict[word][1]) * 255)
-            b = abs((1 - full_dict[word][1]) * 255)
+            if full_dict[word][1] < 0:
+                r,g,b = 150,8,5
+                # r = int((1 - abs(full_dict[word][1])) * 255)
+                # g = 0
+                # b = 0
+            elif full_dict[word][1] > 0:
+                r,g,b = 0,150,10
+                # r = 0
+                # g = int(abs(full_dict[word][1]) * 255)
+                # b = int(abs(1 - abs(full_dict[word][1]) * 255))
     
-        return f"rgb({int(r)}, {int(g)}, {int(b)})"
+        return f"rgb({r}, {g}, {b})"
     
     # create the word cloud
-    wc = WordCloud(background_color='white', max_words=200, color_func=get_word_color, height=800, width=800)
+    wc = WordCloud(background_color='white', max_words=200, color_func=get_word_color, height=1500, width=1500)
 
     # generate the word cloud
     wc.generate_from_frequencies(word_dict_list)
@@ -190,7 +195,6 @@ def generate_wordcloud(messages, arg):
     plt.axis("off")
     plt.show()
 
-    
     # save the WordCloud image as a file
     wc.to_file("wordcloud.png")
 
