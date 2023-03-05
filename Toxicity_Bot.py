@@ -169,17 +169,10 @@ async def do_they_like_me(ctx):
 async def wordcloud(ctx, arg):
     print("In wordcloud")
     messages = await do_they_like_me(ctx)
-<<<<<<< Updated upstream
-    await ctx.send(f'Mkaing wordcloud for {arg}')
+    await ctx.send(f'Making wordcloud for {arg}')
     generate_wordcloud(messages=messages, arg = arg)
     await ctx.send(f'{arg} uses these words most: ')
-=======
-    await ctx.send(f'I did it!')
-    print("moving on to generating wordcloud")
-    generate_wordcloud(messages=messages, arg = arg)
-    print("moving on to printing wordcloud")
->>>>>>> Stashed changes
-    await print_wordcloud()
+    await print_wordcloud(ctx)
 
 def generate_wordcloud(messages, arg):
     tokenized_msgs = tokenize(messages,arg)
@@ -229,13 +222,9 @@ def generate_wordcloud(messages, arg):
     wc.to_file("wordcloud.png")
 
 
-async def print_wordcloud(): 
+async def print_wordcloud(ctx): 
     # find the channel you want to send a message to channel_name = 'general'
-<<<<<<< Updated upstream
-    channel = discord.utils.get(bot.get_all_channels(), name='committee-chat')
-=======
-    channel = discord.utils.get(bot.get_all_channels())
->>>>>>> Stashed changes
+    channel = discord.utils.get(bot.get_all_channels(), name="committee-chat")
     # send a message to the channel
     with open('wordcloud.png', 'rb') as f:
         file = discord.File(f)
@@ -280,14 +269,14 @@ def format_msg(user_profile):
     print(round(user_profile.get('SEVERE_TOXICITY', 0),5)*100)
     print(type(user_profile.get('SEVERE_TOXICITY', 0)))
     msg = f'''Here is the likelihood that you are:
-    **Severely toxic:** {round(user_profile.get('SEVERE_TOXICITY', 0),6)*100}% {user_profile.get('SEVERE_TOXICITY', 0)}, 
-    **Toxic:** {round(user_profile.get('TOXICITY', 0),6)*100}% {user_profile.get('TOXICITY', 0)},
-    **Insulting:** {round(user_profile.get('INSULT', 0),6)*100}% {user_profile.get('INSULT', 0)},
-    **Attacking someone's identity:** {round(user_profile.get('IDENTITY_ATTACK', 0),6)*100}% {user_profile.get('IDENTITY_ATTACK', 0)},
-    **Threatening:** {round(user_profile.get('THREAT', 0),6)*100}% {user_profile.get('THREAT', 0)},
-    **Your most toxic comment was:** {round(user_profile.get('SEVERE_TOXICITY_max', 0),6)*100}% {user_profile.get('SEVERE_TOXICITY_max', 0)}, 
-    **Your most insulting comment was:** {round(user_profile.get('INSULT_max', 0),6)*100}% {user_profile.get('INSULT_max', 0)},
-    **Your most offensive comment was:** {round(user_profile.get('IDENTITY_ATTACK_max', 0),6)*100}% {user_profile.get('IDENTITY_ATTACK_max', 0)}.
+    **Severely toxic:** {round(user_profile.get('SEVERE_TOXICITY', 0),6)*100}%, 
+    **Toxic:** {round(user_profile.get('TOXICITY', 0),6)*100}% ,
+    **Insulting:** {round(user_profile.get('INSULT', 0),6)*100}% ,
+    **Attacking someone's identity:** {round(user_profile.get('IDENTITY_ATTACK', 0),6)*100}% ,
+    **Threatening:** {round(user_profile.get('THREAT', 0),6)*100}% ,
+    **Your most toxic comment was:**{user_profile.get('SEVERE_TOXICITY_max', 0)}, 
+    **Your most insulting comment was:** {user_profile.get('INSULT_max', 0)},
+    **Your most offensive comment was:** {user_profile.get('IDENTITY_ATTACK_max', 0)}.
 '''
     return msg
 
