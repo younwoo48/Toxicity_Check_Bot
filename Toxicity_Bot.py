@@ -65,6 +65,18 @@ async def get_messages(ctx, limit=10):
             user_messages.append((m.content, m.created_at))
     return messages
 
+async def get_messages_from_user(ctx, user, check_no=10):
+    """Get the last `limit` messages in the channel."""
+    messages = list()
+    async for m in ctx.channel.history(limit=1000):
+        if (m.author.name == user):
+            messages.append(m.content)
+            check_no-=1
+        if(check_no == 0):
+            break
+    return messages
+
+
 def judge_toxicity(message):
     API_KEY = 'AIzaSyDJfvvVgP4BQyhmFwlojakTTj7oJ5SJkJs'
     url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=" + API_KEY
@@ -89,20 +101,30 @@ async def do_they_like_me(ctx):
     print(tokenize(messages))
 
 @bot.command()
+async def toxicity_check(ctx):
+    tox = 0
+    recent_msg = await get_messages(ctx,limit=1)
+    for id_user in recent_msg.keys():
+        user = id_user
+    msgs = await get_messages_from_user(ctx, user, check_no=50)
+    for msg in msgs:
+        tox += judge_toxicity(msg)['TOXICITY']
+    tox = (tox/len(msgs))*100
+    await ctx.send(f'{user}\'s recent toxicness: {tox}%')    
+
+@bot.command()
 async def what_are_my_emotions(ctx):
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
     messages = await get_messages(ctx,limit=100)
     await detect_emotion(ctx,messages,user)
-    
-        
-
-
     for user, messages in messages.items():
         for message in messages:
             print(user)
             print(message)
             print(judge_toxicity(message))
+
+
 
 bot.run(TOKEN)
