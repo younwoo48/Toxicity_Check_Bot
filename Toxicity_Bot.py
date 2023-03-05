@@ -21,7 +21,7 @@ tracemalloc.start()
 
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
+# client = discord.Client(intents=intents)
 
 load_dotenv('.env')
 nltk.download('punkt')
@@ -54,11 +54,11 @@ def filter_tokens(token_list,user):
     for token in token_list[user]:
         if(len(token)>=2 and not "_" in token):
             (word, pos) = nltk.pos_tag(token)
-            if(not pos is "DT" and not pos is "PRP"):
+            if pos != "DT" and pos != "PRP":
+            # if not pos is "DT" and not pos is "PRP":
                 passed_tokens.append(token)
     return passed_tokens
-            
-            
+                   
 
 def tokenize(msg):
     token_list = dict()
@@ -140,12 +140,14 @@ async def do_they_like_me(ctx):
 # ----------------- Wordcloud -----------------
 @bot.command()
 async def wordcloud(ctx, arg):
+    print("In wordcloud")
     messages = await do_they_like_me(ctx)
     await ctx.send(f'I did it!')
     await generate_wordcloud(messages=messages, arg = arg)
     await print_wordcloud()
 
 def generate_wordcloud(messages, arg):
+    print("in generate_wordcloud")
     tokenized_msgs = tokenize(messages)
     words = tokenized_msgs[arg]
     joined_list = list(itertools.chain(*words))
@@ -200,6 +202,7 @@ async def print_wordcloud():
 # ------------------------------------
 
 def calculate_user_profile(msg_profiles):
+    print("in calculate_user_profiles")
     # Initialize an empty dictionary to hold the averaged values
     user_profile = {}
 
@@ -233,19 +236,20 @@ def calculate_user_profile(msg_profiles):
 def format_msg(user_profile):
     print(user_profile)
     msg = f'''Here is the likelihood that you are:
-    Severely toxic: {user_profile.get('SEVERE_TOXICITY', '')},
-    Toxic: {user_profile.get('TOXICITY', '')},
-    Insulting: {user_profile.get('INSULT', '')}
-    Attacking someone's identity: {user_profile.get('IDENTITY_ATTACK', '')},
-    Threatening: {user_profile.get('THREAT', '')}
-    Your most toxic comment was: {user_profile.get('SEVERE_TOXICITY_max', '')}.
-    Your most insulting comment was: {user_profile.get('INSULT_max', '')}.
-    Your most offensive comment was: {user_profile.get('IDENTITY_ATTACK_max', '')}.
-    '''
+    **Severely toxic:** {user_profile.get('SEVERE_TOXICITY', '')},
+    **Toxic:** {user_profile.get('TOXICITY', '')},
+    **Insulting:** {user_profile.get('INSULT', '')}
+    **Attacking someone's identity:** {user_profile.get('IDENTITY_ATTACK', '')},
+    **Threatening:** {user_profile.get('THREAT', '')}
+    **Your most toxic comment was:** {user_profile.get('SEVERE_TOXICITY_max', '')}.
+    **Your most insulting comment was:** {user_profile.get('INSULT_max', '')}.
+    **Your most offensive comment was:** {user_profile.get('IDENTITY_ATTACK_max', '')}.
+'''
     return msg
 
 @bot.command()
 async def toxicity_check(ctx):
+    print("in toxicity_check")
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
@@ -257,6 +261,7 @@ async def toxicity_check(ctx):
 
 @bot.command()
 async def what_are_my_emotions(ctx):
+    print("in what_is_my_emotions")
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
@@ -272,22 +277,24 @@ async def what_are_my_emotions(ctx):
 async def on_message(message):
     tox = judge_toxicity([message.content])
     toxic_reasons = []
+    sender = message.author.mention
     for measure in tox.keys():
-        if(tox[measure]>0.45):
-            toxic_reasons.append(measure)
+        if measure != 'CONTENT':
+            if(tox[measure]>0.45):
+                toxic_reasons.append(measure)
     if(len(toxic_reasons)>0):
         if message.author.id in warnings.keys():
             warnings[message.author.id]+=1
         else:
             warnings[message.author.id] = 1
         ending = "th"
-        if(str(warnings[message.author.id])[-1] is "1"):
+        if(str(warnings[message.author.id])[-1] == "1"):
             ending = "st"
-        elif(str(warnings[message.author.id])[-1] is "2"):
+        elif(str(warnings[message.author.id])[-1] == "2"):
             ending = "nd"
-        elif(str(warnings[message.author.id])[-1] is "3"):
+        elif(str(warnings[message.author.id])[-1] == "3"):
             ending = "rd"
-        await message.channel.send(f"<@{message.author.id}> Message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
-
+        await message.channel.send(f"<@{sender}> This message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
+    await bot.process_commands(message)
 
 bot.run(TOKEN)
