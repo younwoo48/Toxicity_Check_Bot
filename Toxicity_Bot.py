@@ -25,7 +25,7 @@ nltk.download('punkt')
 TOKEN = os.getenv('TOKEN')
 
 permissions = discord.Permissions(send_messages=True, read_messages=True)
-bot = commands.Bot(command_prefix = '!', intents=intents)
+bot = commands.Bot(command_prefix = ';;', intents=intents)
 
 
 async def detect_emotion(ctx, msgs ,user):
@@ -78,7 +78,7 @@ async def get_messages_from_user(ctx, user, check_no=10):
     """Get the last `limit` messages in the channel."""
     messages = list()
     async for m in ctx.channel.history(limit=1000):
-        if (m.author.name == user):
+        if (m.author.name == user and not ";;" in m.content):
             messages.append(m.content)
             check_no-=1
         if(check_no == 0):
@@ -99,12 +99,14 @@ def judge_toxicity(message):
         },
         'languages': ['en']
     }
+
     response = requests.post(url, headers=headers, data=json.dumps(data))
     try:
         attribute_scores = response.json()['attributeScores']
         toxicity_scores = {attr: score['summaryScore']['value'] for attr, score in attribute_scores.items()}
     except:
-        pass
+        toxicity_scores = dict()
+        toxicity_scores['TOXICITY'] = 0
     
     return toxicity_scores
 
@@ -153,19 +155,23 @@ async def toxicity_check(ctx):
     max_tox = 0
     most_toxic_msg = ""
     tox = 0
+    msg_tox=0
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
-    msgs = await get_messages_from_user(ctx, user, check_no=50)
+    msgs = await get_messages_from_user(ctx, user, check_no=100)
+    n = 0 
     for msg in msgs:
-        msg_tox = judge_toxicity(msg)['TOXICITY']
-        tox+=msg_tox
-        if(msg_tox>max_tox):
-            max_tox = msg_tox
-            most_toxic_msg = msg
-            
-    tox = (tox/len(msgs))*100
-    await ctx.send(f'{user}\'s recent toxicness: {tox}%\nMost Toxic Message: {most_toxic_msg} with {max_tox*100}%')    
+        if(not ";;" in msg):
+            msg_tox = judge_toxicity(msg)['TOXICITY']
+            if(msg_tox!=0):
+                n+=1
+                tox+=msg_tox
+                if( msg_tox>max_tox):
+                    max_tox = msg_tox
+                    most_toxic_msg = msg
+    tox = (tox/n)*100
+    await ctx.send(f'{user}\'s recent toxicness: {tox}%\nMost Toxic Message: "{most_toxic_msg}" with {max_tox*100}%')    
 
 @bot.command()
 async def what_are_my_emotions(ctx):
@@ -174,6 +180,10 @@ async def what_are_my_emotions(ctx):
         user = id_user
     messages = await get_messages(ctx,limit=100)
     await detect_emotion(ctx,messages,user)
+<<<<<<< Updated upstream
+=======
+    
+>>>>>>> Stashed changes
     for user, messages in messages.items():
         for message in messages:
             print(user)
