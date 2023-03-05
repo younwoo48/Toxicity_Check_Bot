@@ -71,6 +71,7 @@ def filter_tokens(token_list,user):
     prepositions = ["wordcloud","on", "in", "at", "of", "to", "with", "by", "for", "from", "about", "as", "among", "between", "within", "without", "through", "toward", "during", "under", "until", "that", "be", "is"]
 
     passed_tokens = []
+
     for token in token_list[user]:
         for word in token:
             if(word == "I" or ((len(word)>=2) and (not "_" in word))):
@@ -168,9 +169,16 @@ async def do_they_like_me(ctx):
 async def wordcloud(ctx, arg):
     print("In wordcloud")
     messages = await do_they_like_me(ctx)
+<<<<<<< Updated upstream
     await ctx.send(f'Mkaing wordcloud for {arg}')
     generate_wordcloud(messages=messages, arg = arg)
     await ctx.send(f'{arg} uses these words most: ')
+=======
+    await ctx.send(f'I did it!')
+    print("moving on to generating wordcloud")
+    generate_wordcloud(messages=messages, arg = arg)
+    print("moving on to printing wordcloud")
+>>>>>>> Stashed changes
     await print_wordcloud()
 
 def generate_wordcloud(messages, arg):
@@ -223,7 +231,11 @@ def generate_wordcloud(messages, arg):
 
 async def print_wordcloud(): 
     # find the channel you want to send a message to channel_name = 'general'
+<<<<<<< Updated upstream
     channel = discord.utils.get(bot.get_all_channels(), name='committee-chat')
+=======
+    channel = discord.utils.get(bot.get_all_channels())
+>>>>>>> Stashed changes
     # send a message to the channel
     with open('wordcloud.png', 'rb') as f:
         file = discord.File(f)
@@ -265,16 +277,17 @@ def calculate_user_profile(msg_profiles):
     return user_profile
 
 def format_msg(user_profile):
-    print(user_profile)
+    print(round(user_profile.get('SEVERE_TOXICITY', 0),5)*100)
+    print(type(user_profile.get('SEVERE_TOXICITY', 0)))
     msg = f'''Here is the likelihood that you are:
-    **Severely toxic:** {user_profile.get('SEVERE_TOXICITY', '')},
-    **Toxic:** {user_profile.get('TOXICITY', '')},
-    **Insulting:** {user_profile.get('INSULT', '')}
-    **Attacking someone's identity:** {user_profile.get('IDENTITY_ATTACK', '')},
-    **Threatening:** {user_profile.get('THREAT', '')}
-    **Your most toxic comment was:** {user_profile.get('SEVERE_TOXICITY_max', '')}.
-    **Your most insulting comment was:** {user_profile.get('INSULT_max', '')}.
-    **Your most offensive comment was:** {user_profile.get('IDENTITY_ATTACK_max', '')}.
+    **Severely toxic:** {round(user_profile.get('SEVERE_TOXICITY', 0),6)*100}% {user_profile.get('SEVERE_TOXICITY', 0)}, 
+    **Toxic:** {round(user_profile.get('TOXICITY', 0),6)*100}% {user_profile.get('TOXICITY', 0)},
+    **Insulting:** {round(user_profile.get('INSULT', 0),6)*100}% {user_profile.get('INSULT', 0)},
+    **Attacking someone's identity:** {round(user_profile.get('IDENTITY_ATTACK', 0),6)*100}% {user_profile.get('IDENTITY_ATTACK', 0)},
+    **Threatening:** {round(user_profile.get('THREAT', 0),6)*100}% {user_profile.get('THREAT', 0)},
+    **Your most toxic comment was:** {round(user_profile.get('SEVERE_TOXICITY_max', 0),6)*100}% {user_profile.get('SEVERE_TOXICITY_max', 0)}, 
+    **Your most insulting comment was:** {round(user_profile.get('INSULT_max', 0),6)*100}% {user_profile.get('INSULT_max', 0)},
+    **Your most offensive comment was:** {round(user_profile.get('IDENTITY_ATTACK_max', 0),6)*100}% {user_profile.get('IDENTITY_ATTACK_max', 0)}.
 '''
     return msg
 
@@ -329,7 +342,7 @@ async def on_message(message):
             ending = "nd"
         elif(str(warnings[message.author.id])[-1] == "3"):
             ending = "rd"
-        await message.channel.send(f"<@{sender}> This message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
+        await message.channel.send(f"@{sender} This message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
     await bot.process_commands(message)
 
 bot.run(TOKEN)
