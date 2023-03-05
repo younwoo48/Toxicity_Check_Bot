@@ -8,11 +8,14 @@ import nltk
 nltk.download('averaged_perceptron_tagger')
 from nltk import pos_tag
 from nltk.tokenize import word_tokenize 
-from wordcloud import WordCloud
+from wordcloud import WordCloud, STOPWORDS
 import matplotlib.pyplot as plt
 import itertools
 import tracemalloc
 import text2emotion as te
+from textblob import TextBlob
+from collections import Counter
+import random
 
 
 load_dotenv('.env')
@@ -20,7 +23,7 @@ tracemalloc.start()
 
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
+# client = discord.Client(intents=intents)
 
 load_dotenv('.env')
 nltk.download('punkt')
@@ -60,8 +63,7 @@ def filter_tokens(token_list,user):
                         passed_tokens.append(word)
     
     return passed_tokens
-            
-            
+                   
 
 def tokenize(msg,target_user):
     token_list = dict()
@@ -130,6 +132,8 @@ def judge_toxicity(message):
     except:
         toxicity_scores = dict()
         toxicity_scores['TOXICITY'] = 0
+
+    toxicity_scores['CONTENT'] = message
     
     return toxicity_scores
 
@@ -141,6 +145,7 @@ async def do_they_like_me(ctx):
 # ----------------- Wordcloud -----------------
 @bot.command()
 async def wordcloud(ctx, arg):
+    print("In wordcloud")
     messages = await do_they_like_me(ctx)
     await ctx.send(f'I did it!')
     await generate_wordcloud(messages=messages, arg = arg)
@@ -151,16 +156,48 @@ def generate_wordcloud(messages, arg):
     words = tokenized_msgs
     print(words)
     wordcloud = WordCloud(width=800, height=800, background_color='white', min_font_size=10).generate(" ".join(words))
+    print("in generate_wordcloud")
+    tokenized_msgs = tokenize(messages)
+    words = tokenized_msgs[arg]
+    joined_list = list(itertools.chain(*words))
+    word_dict_list = {word: joined_list.count(word) for word in set(joined_list)}
+    
+    sentiment_scores = {}
+    for word in joined_list:
+        blob = TextBlob(word)
+        sentiment_scores[word] = blob.sentiment.polarity
 
-    # plot the WordCloud image
-    plt.figure(figsize=(8,8), facecolor=None)
-    plt.imshow(wordcloud)
+    full_dict  = {}
+    # Print the sentiment scores for each word
+    for word, score in sentiment_scores.items():
+        color = 'red' if score < 0.2 else 'green'
+        full_dict[word] = (word_dict_list[word], score, color)
+        print(score)
+
+    def get_word_color(word, **kwargs):
+        # Generate a random RGB color tuple
+        r,g,b = 0,0,0
+        if word in full_dict.keys():
+            r = abs(full_dict[word][1] * 255)
+            g = abs((1 - full_dict[word][1]) * 255)
+            b = abs((1 - full_dict[word][1]) * 255)
+    
+        return f"rgb({int(r)}, {int(g)}, {int(b)})"
+    
+    # create the word cloud
+    wc = WordCloud(background_color='white', max_words=200, color_func=get_word_color, height=800, width=800)
+
+    # generate the word cloud
+    wc.generate_from_frequencies(word_dict_list)
+
+    # display the word cloud
+    plt.imshow(wc, interpolation='bilinear')
     plt.axis("off")
-    plt.tight_layout(pad=0)
     plt.show()
 
+    
     # save the WordCloud image as a file
-    wordcloud.to_file("wordcloud.png")
+    wc.to_file("wordcloud.png")
 
 async def print_wordcloud(): 
     # find the channel you want to send a message to channel_name = 'general'
@@ -170,8 +207,11 @@ async def print_wordcloud():
         file = discord.File(f)
     # send the file to the channel
     await channel.send(file=file)
+    
+# ------------------------------------
 
 def calculate_user_profile(msg_profiles):
+    print("in calculate_user_profiles")
     # Initialize an empty dictionary to hold the averaged values
     user_profile = {}
 
@@ -179,38 +219,58 @@ def calculate_user_profile(msg_profiles):
     num_dicts = len(msg_profiles)
 
     # Iterate over each key in the dictionaries
-    for key in msg_profiles[0].keys():
-        # Initialize a variable to hold the sum of the values for this key
-        key_sum = 0.0
+    for key in msg_profiles[0]:
+        if key != 'CONTENT':
+            # Initialize variables to hold the sum and maximum values for this key
+            key_sum = 0.0
+            max_msg = ''
+            max_score = float('-inf')
 
-        # Iterate over each dictionary in the list and add up the values for this key
-        for d in msg_profiles:
-            key_sum += d.get(key, 0)
+            # Iterate over each dictionary in the list and add up the values for this key
+            for msg_profile in msg_profiles:
+                key_value = msg_profile.get(key, 0)
+                key_sum += key_value
+                if key_value > max_score: 
+                    max_msg = msg_profile.get('CONTENT', '') 
+                    max_score = key_value
 
-        # Calculate the average for this key
-        key_avg = key_sum / num_dicts
+            # Calculate the average for this key
+            key_avg = key_sum / num_dicts
 
-        # Add the average value to the new dictionary
-        user_profile[key] = key_avg
+            # Add the average and maximum values to the new dictionary
+            user_profile[key] = key_avg
+            user_profile[key+'_max'] = max_msg
     return user_profile
 
+def format_msg(user_profile):
+    print(user_profile)
+    msg = f'''Here is the likelihood that you are:
+    **Severely toxic:** {user_profile.get('SEVERE_TOXICITY', '')},
+    **Toxic:** {user_profile.get('TOXICITY', '')},
+    **Insulting:** {user_profile.get('INSULT', '')}
+    **Attacking someone's identity:** {user_profile.get('IDENTITY_ATTACK', '')},
+    **Threatening:** {user_profile.get('THREAT', '')}
+    **Your most toxic comment was:** {user_profile.get('SEVERE_TOXICITY_max', '')}.
+    **Your most insulting comment was:** {user_profile.get('INSULT_max', '')}.
+    **Your most offensive comment was:** {user_profile.get('IDENTITY_ATTACK_max', '')}.
+'''
+    return msg
 
 @bot.command()
 async def toxicity_check(ctx):
+    print("in toxicity_check")
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
     msgs = await get_messages_from_user(ctx, user, check_no=100)
     msg_profs = [judge_toxicity(m) for m in msgs]
-    print('calculating user prof...')
     user_profile = calculate_user_profile(msg_profs)
-    print(user_profile)
-    #     tox += judge_toxicity(msg)['T
-    # tox = (tox/len(msgs))*100
-    # await ctx.send(f'{user}\'s recent toxicness: {tox}%')    
+    msg_to_send = format_msg(user_profile)
+    await ctx.send(msg_to_send)
 
 @bot.command()
 async def what_are_my_emotions(ctx):
+    print("in what_is_my_emotions")
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
@@ -226,9 +286,11 @@ async def what_are_my_emotions(ctx):
 async def on_message(message):
     tox = judge_toxicity([message.content])
     toxic_reasons = []
+    sender = message.author.mention
     for measure in tox.keys():
-        if(tox[measure]>0.45):
-            toxic_reasons.append(measure)
+        if measure != 'CONTENT':
+            if(tox[measure]>0.45):
+                toxic_reasons.append(measure)
     if(len(toxic_reasons)>0):
         if message.author.id in warnings.keys():
             warnings[message.author.id]+=1
@@ -241,7 +303,7 @@ async def on_message(message):
             ending = "nd"
         elif(str(warnings[message.author.id])[-1] == "3"):
             ending = "rd"
-        await message.channel.send(f"<@{message.author.id}> Message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
-
+        await message.channel.send(f"<@{sender}> This message is not appropriate because of {toxic_reasons}, please be nice :)\n This is your {warnings[message.author.id]}{ending} warning")
+    await bot.process_commands(message)
 
 bot.run(TOKEN)
