@@ -100,8 +100,12 @@ def judge_toxicity(message):
         'languages': ['en']
     }
     response = requests.post(url, headers=headers, data=json.dumps(data))
-    attribute_scores = response.json()['attributeScores']
-    toxicity_scores = {attr: score['summaryScore']['value'] for attr, score in attribute_scores.items()}
+    try:
+        attribute_scores = response.json()['attributeScores']
+        toxicity_scores = {attr: score['summaryScore']['value'] for attr, score in attribute_scores.items()}
+    except:
+        pass
+    
     return toxicity_scores
 
 @bot.command()
@@ -146,15 +150,22 @@ async def print_wordcloud():
 
 @bot.command()
 async def toxicity_check(ctx):
+    max_tox = 0
+    most_toxic_msg = ""
     tox = 0
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
     msgs = await get_messages_from_user(ctx, user, check_no=50)
     for msg in msgs:
-        tox += judge_toxicity(msg)['TOXICITY']
+        msg_tox = judge_toxicity(msg)['TOXICITY']
+        tox+=msg_tox
+        if(msg_tox>max_tox):
+            max_tox = msg_tox
+            most_toxic_msg = msg
+            
     tox = (tox/len(msgs))*100
-    await ctx.send(f'{user}\'s recent toxicness: {tox}%')    
+    await ctx.send(f'{user}\'s recent toxicness: {tox}%\nMost Toxic Message: {most_toxic_msg} with {max_tox*100}%')    
 
 @bot.command()
 async def what_are_my_emotions(ctx):
