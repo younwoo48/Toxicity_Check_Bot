@@ -35,7 +35,7 @@ async def detect_emotion(ctx, msgs ,user):
     sad = 0
     surprise = 0
     n = 0
-    for (text,time) in msgs[user]:
+    for text in msgs:
         emotion = te.get_emotion(text)
         n+=1
         anger += emotion['Angry']
@@ -197,14 +197,14 @@ async def what_are_my_emotions(ctx):
     recent_msg = await get_messages(ctx,limit=1)
     for id_user in recent_msg.keys():
         user = id_user
-    messages = await get_messages(ctx,limit=100)
+    messages = await get_messages_from_user(ctx,user,limit=100)
     await detect_emotion(ctx,messages,user)
 
-    for user, messages in messages.items():
-        for message in messages:
-            print(user)
-            print(message)
-            print(judge_toxicity(message))
+    # for user, messages in messages.items():
+    #     for message in messages:
+    #         print(user)
+    #         print(message)
+    #         print(judge_toxicity(message))
 @bot.event
 async def on_message(message):
     tox = judge_toxicity([message.content])
