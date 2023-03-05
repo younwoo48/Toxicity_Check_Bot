@@ -6,11 +6,14 @@ import json
 from discord.ext import commands
 import nltk
 from nltk.tokenize import word_tokenize 
-from wordcloud import WordCloud
+from wordcloud import WordCloud, STOPWORDS
 import matplotlib.pyplot as plt
 import itertools
 import tracemalloc
 import text2emotion as te
+from textblob import TextBlob
+from collections import Counter
+import random
 
 
 load_dotenv('.env')
@@ -132,18 +135,44 @@ def generate_wordcloud(messages, arg):
     tokenized_msgs = tokenize(messages)
     words = tokenized_msgs[arg]
     joined_list = list(itertools.chain(*words))
+    word_dict_list = {word: joined_list.count(word) for word in set(joined_list)}
+    
+    sentiment_scores = {}
+    for word in joined_list:
+        blob = TextBlob(word)
+        sentiment_scores[word] = blob.sentiment.polarity
 
-    wordcloud = WordCloud(width=800, height=800, background_color='white', min_font_size=10).generate(' '.join(joined_list))
+    full_dict  = {}
+    # Print the sentiment scores for each word
+    for word, score in sentiment_scores.items():
+        color = 'red' if score < 0.2 else 'green'
+        full_dict[word] = (word_dict_list[word], score, color)
+        print(score)
 
-    # plot the WordCloud image
-    plt.figure(figsize=(8,8), facecolor=None)
-    plt.imshow(wordcloud)
+    def get_word_color(word, **kwargs):
+        # Generate a random RGB color tuple
+        r,g,b = 0,0,0
+        if word in full_dict.keys():
+            r = abs(full_dict[word][1] * 255)
+            g = abs((1 - full_dict[word][1]) * 255)
+            b = abs((1 - full_dict[word][1]) * 255)
+    
+        return f"rgb({int(r)}, {int(g)}, {int(b)})"
+    
+    # create the word cloud
+    wc = WordCloud(background_color='white', max_words=200, color_func=get_word_color, height=800, width=800)
+
+    # generate the word cloud
+    wc.generate_from_frequencies(word_dict_list)
+
+    # display the word cloud
+    plt.imshow(wc, interpolation='bilinear')
     plt.axis("off")
-    plt.tight_layout(pad=0)
     plt.show()
 
+    
     # save the WordCloud image as a file
-    wordcloud.to_file("wordcloud.png")
+    wc.to_file("wordcloud.png")
 
 async def print_wordcloud(): 
     # find the channel you want to send a message to channel_name = 'general'
@@ -153,6 +182,8 @@ async def print_wordcloud():
         file = discord.File(f)
     # send the file to the channel
     await channel.send(file=file)
+    
+# ------------------------------------
 
 def calculate_user_profile(msg_profiles):
     # Initialize an empty dictionary to hold the averaged values
