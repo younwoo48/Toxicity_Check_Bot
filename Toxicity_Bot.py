@@ -5,14 +5,15 @@ import requests
 import json
 from discord.ext import commands
 import nltk
-nltk.download('punkt')
 from nltk.tokenize import word_tokenize 
-load_dotenv('.env')
 import text2emotion as te
+
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+load_dotenv('.env')
+nltk.download('punkt')
 TOKEN = os.getenv('TOKEN')
 
 permissions = discord.Permissions(send_messages=True, read_messages=True)
@@ -119,6 +120,10 @@ async def what_are_my_emotions(ctx):
         user = id_user
     messages = await get_messages(ctx,limit=100)
     await detect_emotion(ctx,messages,user)
+<<<<<<< Updated upstream
+=======
+    
+>>>>>>> Stashed changes
     for user, messages in messages.items():
         for message in messages:
             print(user)
