@@ -6,7 +6,7 @@ import nltk
 nltk.download('punkt')
 from nltk.tokenize import word_tokenize 
 load_dotenv('.env')
-
+import text2emotion as te
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
@@ -15,6 +15,25 @@ TOKEN = os.getenv('TOKEN')
 
 permissions = discord.Permissions(send_messages=True, read_messages=True)
 bot = commands.Bot(command_prefix = '!', intents=intents)
+
+
+async def detect_emotion(ctx, msgs ,user):
+    anger = 0
+    fear = 0
+    happy = 0
+    sad = 0
+    surprise = 0
+    n = 0
+    for (text,time) in msgs[user]:
+        emotion = te.get_emotion(text)
+        n+=1
+        anger += emotion['Angry']
+        fear += emotion['Fear']
+        happy += emotion['Happy']
+        sad += emotion['Sad']
+        surprise + emotion['Surprise']
+    await ctx.send(f'{user}\'s recent emotions:\n')    
+    await ctx.send(f'Anger: {anger/n}\nFear: {fear/n}\nHappy: {happy/n}\nSad: {sad/n}\nSurprise: {surprise/n}')    
 
 def tokenize(msg):
     token_list = dict()
@@ -48,6 +67,16 @@ async def get_messages(ctx, limit=10):
 async def do_they_like_me(ctx):
     messages = await get_messages(ctx)
     print(tokenize(messages))
+
+@bot.command()
+async def what_are_my_emotions(ctx):
+    recent_msg = await get_messages(ctx,limit=1)
+    for id_user in recent_msg.keys():
+        user = id_user
+    messages = await get_messages(ctx,limit=100)
+    await detect_emotion(ctx,messages,user)
+    
+        
 
 
 bot.run(TOKEN)
